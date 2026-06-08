@@ -1,5 +1,6 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
 -- SPDX-License-Identifier: GPL-3.0
+-- https://github.com/SinTan1729/koreader-patches
 
 -- This widget draws a clean top bar in KOReader reader view
 -- It shows the author name on left, book title on right,
@@ -7,7 +8,6 @@
 -- Customization is possible, but I don't intend to provide much support.
 -- It's heavily inspired by https://github.com/joshuacant/KOReader.patches
 -- Please use his patches instead, if you want more customization.
-
 
 local UIManager = require("ui/uimanager")
 local Blitbuffer = require("ffi/blitbuffer")
@@ -33,15 +33,13 @@ local header_settings = G_reader_settings:readSetting("footer")
 local screen_width = Screen:getWidth()
 
 local headerAutoRefresh
-local clock_region = nil
-local clock_only_refresh = false
+local header_region = nil
 local function scheduleHeaderRefresh(view)
     if not headerAutoRefresh then
         headerAutoRefresh = function()
-            if clock_region then
-                clock_only_refresh = true
+            if header_region then
                 UIManager:setDirty(view.dialog, function()
-                    return "ui", clock_region
+                    return "ui", header_region
                 end)
             end
 
@@ -127,92 +125,85 @@ ReaderView.paintTo = function(self, bb, x, y)
     )
 
     -- Short circuit on subsequent refreshes
-    if not clock_only_refresh then
-        local book_title = ""
-        local book_author = ""
-        if self.ui.doc_props then
-            book_title = self.ui.doc_props.display_title or ""
-            book_author = self.ui.doc_props.authors or ""
-            if book_author:find("\n") then -- Show first author if multiple authors
-                book_author = T(_("%1 et al."), util.splitToArray(book_author, "\n")[1] .. ",")
-            end
+    local book_title = ""
+    local book_author = ""
+    if self.ui.doc_props then
+        book_title = self.ui.doc_props.display_title or ""
+        book_author = self.ui.doc_props.authors or ""
+        if book_author:find("\n") then -- Show first author if multiple authors
+            book_author = T(_("%1 et al."), util.splitToArray(book_author, "\n")[1] .. ",")
         end
-
-        -- ===========================!!!!!!!!!!!!!!!=========================== -
-        -- What you put here will show in the header:
-        local left_corner_header = string.format("%s", book_author)
-        local right_corner_header = string.format("%s", book_title)
-        -- Look up "string.format" in Lua if you need help.
-        -- ===========================!!!!!!!!!!!!!!!=========================== -
-
-
-
-        -- don't change anything below this line
-        local margins = 0
-        local left_margin = header_margin
-        local right_margin = header_margin
-        if header_use_book_margins then -- Set width % based on R + L margins
-            left_margin = self.document:getPageMargins().left or header_margin
-            right_margin = self.document:getPageMargins().right or header_margin
-        end
-        margins = left_margin + right_margin
-        local avail_width = screen_width - margins -- deduct margins from width
-        local function getFittedText(text, max_width_pct)
-            if text == nil or text == "" then
-                return ""
-            end
-            local text_widget = TextWidget:new {
-                text = text:gsub(" ", "\u{00A0}"), -- no-break-space
-                max_width = avail_width * max_width_pct * (1 / 100),
-                face = Font:getFace(header_font_face, header_font_size),
-                bold = header_font_bold,
-                padding = 0,
-            }
-            local fitted_text, add_ellipsis = text_widget:getFittedText()
-            text_widget:free()
-            if add_ellipsis then
-                fitted_text = fitted_text .. "…"
-            end
-            return BD.auto(fitted_text)
-        end
-        left_corner_header = getFittedText(left_corner_header, left_max_width_pct)
-        right_corner_header = getFittedText(right_corner_header, right_max_width_pct)
-        local left_header_text = TextWidget:new {
-            text = left_corner_header,
-            face = Font:getFace(header_font_face, header_font_size),
-            bold = header_font_bold,
-            fgcolor = header_font_color,
-            padding = 0,
-        }
-        local right_header_text = TextWidget:new {
-            text = right_corner_header,
-            face = Font:getFace(header_font_face, header_font_size),
-            bold = header_font_bold,
-            fgcolor = header_font_color,
-            padding = 0,
-        }
-        local dynamic_space = (avail_width - left_header_text:getSize().w - right_header_text:getSize().w)
-        local header = CenterContainer:new {
-            dimen = Geom:new { w = screen_width, h = math.max(left_header_text:getSize().h, right_header_text:getSize().h, center_header_widget:getSize().h) + header_top_padding },
-            VerticalGroup:new {
-                VerticalSpan:new { width = header_top_padding },
-                HorizontalGroup:new {
-                    left_header_text,
-                    HorizontalSpan:new { width = dynamic_space },
-                    right_header_text,
-                }
-            },
-        }
-        header:paintTo(bb, x, y)
     end
 
-    self._clock_width = self._clock_width or getMaxClockWidth()
-    clock_region = Geom:new {
-        x = screen_width / 2 - self._clock_width / 2,
-        y = header_top_padding,
-        w = self._clock_width,
-        h = center_header_widget:getSize().h,
+    -- ===========================!!!!!!!!!!!!!!!=========================== -
+    -- What you put here will show in the header:
+    local left_corner_header = string.format("%s", book_author)
+    local right_corner_header = string.format("%s", book_title)
+    -- Look up "string.format" in Lua if you need help.
+    -- ===========================!!!!!!!!!!!!!!!=========================== -
+
+
+
+    -- don't change anything below this line
+    local margins = 0
+    local left_margin = header_margin
+    local right_margin = header_margin
+    if header_use_book_margins then -- Set width % based on R + L margins
+        left_margin = self.document:getPageMargins().left or header_margin
+        right_margin = self.document:getPageMargins().right or header_margin
+    end
+    margins = left_margin + right_margin
+    local avail_width = screen_width - margins -- deduct margins from width
+    local function getFittedText(text, max_width_pct)
+        if text == nil or text == "" then
+            return ""
+        end
+        local text_widget = TextWidget:new {
+            text = text:gsub(" ", "\u{00A0}"), -- no-break-space
+            max_width = avail_width * max_width_pct * (1 / 100),
+            face = Font:getFace(header_font_face, header_font_size),
+            bold = header_font_bold,
+            padding = 0,
+        }
+        local fitted_text, add_ellipsis = text_widget:getFittedText()
+        text_widget:free()
+        if add_ellipsis then
+            fitted_text = fitted_text .. "…"
+        end
+        return BD.auto(fitted_text)
+    end
+    left_corner_header = getFittedText(left_corner_header, left_max_width_pct)
+    right_corner_header = getFittedText(right_corner_header, right_max_width_pct)
+    local left_header_text = TextWidget:new {
+        text = left_corner_header,
+        face = Font:getFace(header_font_face, header_font_size),
+        bold = header_font_bold,
+        fgcolor = header_font_color,
+        padding = 0,
     }
+    local right_header_text = TextWidget:new {
+        text = right_corner_header,
+        face = Font:getFace(header_font_face, header_font_size),
+        bold = header_font_bold,
+        fgcolor = header_font_color,
+        padding = 0,
+    }
+    local dynamic_space = (avail_width - left_header_text:getSize().w - right_header_text:getSize().w)
+    local header = CenterContainer:new {
+        dimen = Geom:new { w = screen_width, h = math.max(left_header_text:getSize().h, right_header_text:getSize().h, center_header_widget:getSize().h) + header_top_padding },
+        VerticalGroup:new {
+            VerticalSpan:new { width = header_top_padding },
+            HorizontalGroup:new {
+                left_header_text,
+                HorizontalSpan:new { width = dynamic_space },
+                right_header_text,
+            }
+        },
+    }
+    header_region = header.dimen
+    header:paintTo(bb, x, y)
+
+    self._clock_width = self._clock_width or getMaxClockWidth()
     paintCenteredClock(
         bb,
         x,
@@ -221,5 +212,4 @@ ReaderView.paintTo = function(self, bb, x, y)
         header_top_padding
     )
     scheduleHeaderRefresh(self)
-    clock_only_refresh = false
 end

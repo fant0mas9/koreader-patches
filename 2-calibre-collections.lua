@@ -1,8 +1,8 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
 -- SPDX-License-Identifier: GPL-3.0
+-- https://github.com/SinTan1729/koreader-patches
 
 -- Sync KOReader collections from Calibre's #collections custom column.
--- https://github.com/SinTan1729/koreader-patches
 
 local userpatch = require("userpatch")
 local ReadCollection = require("readcollection")
