@@ -31,31 +31,31 @@ local ReaderView = require("apps/reader/modules/readerview")
 local _ReaderView_paintTo_orig = ReaderView.paintTo
 local header_settings = G_reader_settings:readSetting("footer")
 local screen_width = Screen:getWidth()
+local logger = require("logger")
 
-local headerAutoRefresh
 local header_region = nil
+local refresh_scheduled = false
+local scheduled_view = nil
 local function scheduleHeaderRefresh(view)
-    if not headerAutoRefresh then
-        headerAutoRefresh = function()
-            if header_region then
-                UIManager:setDirty(view.dialog, function()
-                    return "ui", header_region
-                end)
-            end
-
-            UIManager:scheduleIn(
-                61 - tonumber(os.date("%S")),
-                headerAutoRefresh
-            )
-        end
+    if refresh_scheduled then
+        return
     end
 
-    UIManager:unschedule(headerAutoRefresh)
+    refresh_scheduled = true
+    scheduled_view = view
 
-    UIManager:scheduleIn(
-        61 - tonumber(os.date("%S")),
-        headerAutoRefresh
-    )
+    logger.info("Clean Header: Scheduling header refresh.")
+    UIManager:scheduleIn(60 - tonumber(os.date("%S")), function()
+        logger.info("Clean Header: Firing header refresh.")
+        if view
+            and view.dialog
+            and header_region then
+            UIManager:setDirty(view.dialog, function()
+                return "ui", header_region
+            end)
+        end
+        refresh_scheduled = false
+    end)
 end
 
 local function makeClockWidget(font_face, font_size, bold, color)
@@ -123,8 +123,15 @@ ReaderView.paintTo = function(self, bb, x, y)
         header_font_bold,
         header_font_color
     )
+    self._clock_width = self._clock_width or getMaxClockWidth()
+    paintCenteredClock(
+        bb,
+        x,
+        y,
+        center_header_widget,
+        header_top_padding
+    )
 
-    -- Short circuit on subsequent refreshes
     local book_title = ""
     local book_author = ""
     if self.ui.doc_props then
@@ -141,8 +148,6 @@ ReaderView.paintTo = function(self, bb, x, y)
     local right_corner_header = string.format("%s", book_title)
     -- Look up "string.format" in Lua if you need help.
     -- ===========================!!!!!!!!!!!!!!!=========================== -
-
-
 
     -- don't change anything below this line
     local margins = 0
@@ -200,16 +205,12 @@ ReaderView.paintTo = function(self, bb, x, y)
             }
         },
     }
-    header_region = header.dimen
     header:paintTo(bb, x, y)
+    header_region = header.dimen
 
-    self._clock_width = self._clock_width or getMaxClockWidth()
-    paintCenteredClock(
-        bb,
-        x,
-        y,
-        center_header_widget,
-        header_top_padding
-    )
+    if self ~= scheduled_view then
+        logger.info("Clean Header: View has changed.")
+        refresh_scheduled = false
+    end
     scheduleHeaderRefresh(self)
 end
