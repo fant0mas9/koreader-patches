@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com> -->
+<!-- SPDX-License-Identifier: GPL-3.0 -->
+
 ## KOReader Patches
 
 This is a collection of the KOReader patches that I've written. A short description for each patch is provided below.

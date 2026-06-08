@@ -1,5 +1,6 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
--- SPDX-License-Identifier: MIT
+-- SPDX-License-Identifier: GPL-3.0
+
 -- Sync KOReader collections from Calibre's #collections custom column.
 -- https://github.com/SinTan1729/koreader-patches
 
