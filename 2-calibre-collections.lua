@@ -114,7 +114,7 @@ local function addBook(filepath, collection)
         return
     end
 
-    logger.debug(
+    logger.dbg(
         'Calibre Collections: Adding',
         filepath, 'to', collection
     )
@@ -130,7 +130,7 @@ local function removeBook(filepath, collection)
         return
     end
 
-    logger.debug(
+    logger.dbg(
         'Calibre Collections: Removing',
         filepath, 'from', collection
     )
@@ -300,7 +300,7 @@ local function runSync()
 
     saveState()
 
-    logger.debug(
+    logger.dbg(
         'Calibre Collections: sync complete'
     )
 end

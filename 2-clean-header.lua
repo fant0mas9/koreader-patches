@@ -1,37 +1,40 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
 -- SPDX-License-Identifier: GPL-3.0
--- https://github.com/SinTan1729/koreader-patches
 
--- This widget draws a clean top bar in KOReader reader view
--- It shows the author name on left, book title on right,
--- and time in the middle. The time is automatically refreshed.
--- Customization is possible, but I don't intend to provide much support.
--- It's heavily inspired by https://github.com/joshuacant/KOReader.patches
--- Please use his patches instead, if you want more customization.
+--[[ Repo: https://github.com/SinTan1729/koreader-patches
+This widget draws a clean top bar in KOReader reader view
+It shows the author name on left, book title on right,
+and time in the middle. The time is automatically refreshed.
+Customization is possible, but I don't intend to provide much support.
+It's heavily inspired by https://github.com/joshuacant/KOReader.patches
+Please use his patches instead, if you want more customization.
+]]
 
-local UIManager = require("ui/uimanager")
-local Blitbuffer = require("ffi/blitbuffer")
-local TextWidget = require("ui/widget/textwidget")
-local CenterContainer = require("ui/widget/container/centercontainer")
-local VerticalGroup = require("ui/widget/verticalgroup")
-local VerticalSpan = require("ui/widget/verticalspan")
-local HorizontalGroup = require("ui/widget/horizontalgroup")
-local HorizontalSpan = require("ui/widget/horizontalspan")
-local BD = require("ui/bidi")
-local Size = require("ui/size")
-local Geom = require("ui/geometry")
-local Device = require("device")
-local Font = require("ui/font")
-local util = require("util")
-local datetime = require("datetime")
+local UIManager = require('ui/uimanager')
+local Blitbuffer = require('ffi/blitbuffer')
+local TextWidget = require('ui/widget/textwidget')
+local CenterContainer = require('ui/widget/container/centercontainer')
+local VerticalGroup = require('ui/widget/verticalgroup')
+local VerticalSpan = require('ui/widget/verticalspan')
+local HorizontalGroup = require('ui/widget/horizontalgroup')
+local HorizontalSpan = require('ui/widget/horizontalspan')
+local BD = require('ui/bidi')
+local Size = require('ui/size')
+local Geom = require('ui/geometry')
+local Device = require('device')
+local Font = require('ui/font')
+local util = require('util')
+local datetime = require('datetime')
 local Screen = Device.screen
-local _ = require("gettext")
-local T = require("ffi/util").template
-local ReaderView = require("apps/reader/modules/readerview")
+local _ = require('gettext')
+local T = require('ffi/util').template
+local ReaderView = require('apps/reader/modules/readerview')
 local _ReaderView_paintTo_orig = ReaderView.paintTo
-local header_settings = G_reader_settings:readSetting("footer")
+---@diagnostic disable-next-line: undefined-global
+local g_reader_settings = G_reader_settings
+local header_settings = g_reader_settings:readSetting('footer')
 local screen_width = Screen:getWidth()
-local logger = require("logger")
+local logger = require('logger')
 
 local header_region = nil
 local refresh_scheduled = false
@@ -44,14 +47,14 @@ local function scheduleHeaderRefresh(view)
     refresh_scheduled = true
     scheduled_view = view
 
-    logger.info("Clean Header: Scheduling header refresh.")
-    UIManager:scheduleIn(60 - tonumber(os.date("%S")), function()
-        logger.info("Clean Header: Firing header refresh.")
+    logger.dbg('Clean Header: Scheduling header refresh.')
+    UIManager:scheduleIn(60 - tonumber(os.date('%S')), function()
+        logger.dbg('Clean Header: Firing header refresh.')
         if view
             and view.dialog
             and header_region then
             UIManager:setDirty(view.dialog, function()
-                return "ui", header_region
+                return 'ui', header_region
             end)
         end
         refresh_scheduled = false
@@ -61,8 +64,8 @@ end
 local function makeClockWidget(font_face, font_size, bold, color)
     local time = datetime.secondsToHour(
         os.time(),
-        G_reader_settings:isTrue("twelve_hour_clock")
-    ) or ""
+        g_reader_settings:isTrue('twelve_hour_clock')
+    ) or ''
 
     return TextWidget:new {
         text = time,
@@ -82,11 +85,11 @@ local function paintCenteredClock(bb, x, y, clock_widget, top_padding)
 end
 
 local function getMaxClockWidth()
-    local header_font_face = "ffont"                                 -- this is the same font the footer uses
+    local header_font_face = 'ffont'                                 -- this is the same font the footer uses
     local header_font_size = header_settings.text_font_size or 14    -- Will use your footer setting if available
     local header_font_bold = header_settings.text_font_bold or false -- Will use your footer setting if available
     local widget = TextWidget:new {
-        text = "88:88 PM",
+        text = '88:88 PM',
         face = Font:getFace(header_font_face, header_font_size),
         bold = header_font_bold,
         padding = 0,
@@ -102,7 +105,7 @@ ReaderView.paintTo = function(self, bb, x, y)
     _ReaderView_paintTo_orig(self, bb, x, y)
     if self.render_mode ~= nil then return end                       -- Show only for epub-likes and never on pdf-likes
 
-    local header_font_face = "ffont"                                 -- this is the same font the footer uses
+    local header_font_face = 'ffont'                                 -- this is the same font the footer uses
     -- header_font_face = "source/SourceSerif4-Regular.ttf" -- this is the serif font from Project: Title
     local header_font_size = header_settings.text_font_size or 14    -- Will use your footer setting if available
     local header_font_bold = header_settings.text_font_bold or false -- Will use your footer setting if available
@@ -132,20 +135,20 @@ ReaderView.paintTo = function(self, bb, x, y)
         header_top_padding
     )
 
-    local book_title = ""
-    local book_author = ""
+    local book_title = ''
+    local book_author = ''
     if self.ui.doc_props then
-        book_title = self.ui.doc_props.display_title or ""
-        book_author = self.ui.doc_props.authors or ""
-        if book_author:find("\n") then -- Show first author if multiple authors
-            book_author = T(_("%1 et al."), util.splitToArray(book_author, "\n")[1] .. ",")
+        book_title = self.ui.doc_props.display_title or ''
+        book_author = self.ui.doc_props.authors or ''
+        if book_author:find('\n') then -- Show first author if multiple authors
+            book_author = T(_('%1 et al.'), util.splitToArray(book_author, '\n')[1] .. ',')
         end
     end
 
     -- ===========================!!!!!!!!!!!!!!!=========================== -
     -- What you put here will show in the header:
-    local left_corner_header = string.format("%s", book_author)
-    local right_corner_header = string.format("%s", book_title)
+    local left_corner_header = string.format('%s', book_author)
+    local right_corner_header = string.format('%s', book_title)
     -- Look up "string.format" in Lua if you need help.
     -- ===========================!!!!!!!!!!!!!!!=========================== -
 
@@ -160,11 +163,11 @@ ReaderView.paintTo = function(self, bb, x, y)
     margins = left_margin + right_margin
     local avail_width = screen_width - margins -- deduct margins from width
     local function getFittedText(text, max_width_pct)
-        if text == nil or text == "" then
-            return ""
+        if text == nil or text == '' then
+            return ''
         end
         local text_widget = TextWidget:new {
-            text = text:gsub(" ", "\u{00A0}"), -- no-break-space
+            text = text:gsub(' ', '\u{00A0}'), -- no-break-space
             max_width = avail_width * max_width_pct * (1 / 100),
             face = Font:getFace(header_font_face, header_font_size),
             bold = header_font_bold,
@@ -173,7 +176,7 @@ ReaderView.paintTo = function(self, bb, x, y)
         local fitted_text, add_ellipsis = text_widget:getFittedText()
         text_widget:free()
         if add_ellipsis then
-            fitted_text = fitted_text .. "…"
+            fitted_text = fitted_text .. '…'
         end
         return BD.auto(fitted_text)
     end
@@ -209,7 +212,7 @@ ReaderView.paintTo = function(self, bb, x, y)
     header_region = header.dimen
 
     if self ~= scheduled_view then
-        logger.info("Clean Header: View has changed.")
+        logger.dbg('Clean Header: View has changed.')
         refresh_scheduled = false
     end
     scheduleHeaderRefresh(self)
