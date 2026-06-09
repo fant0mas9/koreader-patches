@@ -12,6 +12,8 @@ This is a collection of the KOReader patches that I've written. A short descript
    It does not touch already existing collections. So please don't create any collections with the same name an entry in `#collections` manually.
    Collections are created/updated at startup.
 
+   Automatically managed collections are marked with a ⚡ in the viewer. This is also customizable.
+
    [Read this to learn about custom columns.](https://wiki.mobileread.com/wiki/Kobo_Shelves_and_Collections#Driver_.2F_calibre_Configuration)
 
 1. Clean Header

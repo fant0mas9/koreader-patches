@@ -1,47 +1,60 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
 -- SPDX-License-Identifier: GPL-3.0
--- https://github.com/SinTan1729/koreader-patches
 
--- Sync KOReader collections from Calibre's #collections custom column.
 
-local userpatch = require("userpatch")
-local ReadCollection = require("readcollection")
-local FileManagerCollection = require("apps/filemanager/filemanagercollection")
-local DataStorage = require("datastorage")
-local LuaSettings = require("luasettings")
-local logger = require("logger")
-local lfs = require("libs/libkoreader-lfs")
+--[[ Repo:https://github.com/SinTan1729/koreader-patches
+   This automatically creates KOReader collections using a custom collection from calibre.
+   By default, a custom column called `#collections` is used. But the script can easily be edited
+   to use any other column name. Just change the variable CUSTOM_COLUMN_USED below.
+
+   It does not touch already existing collections. So please don't create any collections with
+   the same name an entry in `#collections` manually. Collections are created/updated at startup.
+   Automatically managed collections are marked with a ⚡ in the viewer. This is also customizable.
+]]
+
+-- !!! Change this variable if you want to use a different custom column name
+-- Note that you need to add a # to the front.
+local CUSTOM_COLUMN_USED = '#collections'
+local MARKER = '⚡'
+
+-- You shouldn't need to touch anything after this line
+local userpatch = require('userpatch')
+local ReadCollection = require('readcollection')
+local FileManagerCollection = require('apps/filemanager/filemanagercollection')
+local DataStorage = require('datastorage')
+local LuaSettings = require('luasettings')
+local logger = require('logger')
+local lfs = require('libs/libkoreader-lfs')
 
 local json
 do
     local ok
-    ok, json = pcall(require, "json")
+    ok, json = pcall(require, 'json')
     if not ok then
-        ok, json = pcall(require, "rapidjson")
+        ok, json = pcall(require, 'rapidjson')
     end
     if not ok then
-        logger.err("Calibre Collections: no JSON library found")
+        logger.err('Calibre Collections: no JSON library found')
         return
     end
 end
 
--- constants
-local METADATA_FILE = "/mnt/onboard/metadata.calibre"
-local LIBRARY_ROOT = "/mnt/onboard"
-local MARKER = "\u{1F4A1}"
+-- internal constants
+local METADATA_FILE = '/mnt/onboard/metadata.calibre'
+local LIBRARY_ROOT = '/mnt/onboard'
 local SETTINGS_FILE =
-    DataStorage:getSettingsDir() .. "/calibre_collections.lua"
+    DataStorage:getSettingsDir() .. '/calibre_collections.lua'
 
 -- state
 local settings = LuaSettings:open(SETTINGS_FILE)
 local managed =
-    settings:readSetting("managed_collections", {})
+    settings:readSetting('managed_collections', {})
 local startup_done = false
 
 -- persistence
 local function saveState()
     settings:saveSetting(
-        "managed_collections",
+        'managed_collections',
         managed
     )
     settings:flush()
@@ -57,7 +70,7 @@ function FileManagerCollection.getCollMarker(name)
     local marker = orig_getCollMarker(name)
     if isManaged(name) then
         marker = marker and
-            (marker .. " " .. MARKER)
+            (marker .. ' ' .. MARKER)
             or MARKER
     end
     return marker
@@ -74,7 +87,7 @@ local function createCollection(name)
     end
 
     logger.info(
-        "Calibre Collections: Creating collection:",
+        'Calibre Collections: Creating collection:',
         name
     )
 
@@ -101,9 +114,9 @@ local function addBook(filepath, collection)
         return
     end
 
-    logger.info(
-        "Calibre Collections: Adding",
-        filepath, "to", collection
+    logger.debug(
+        'Calibre Collections: Adding',
+        filepath, 'to', collection
     )
 
     ReadCollection:addItem(
@@ -117,9 +130,9 @@ local function removeBook(filepath, collection)
         return
     end
 
-    logger.info(
-        "Calibre Collections: Removing",
-        filepath, "from", collection
+    logger.debug(
+        'Calibre Collections: Removing',
+        filepath, 'from', collection
     )
 
     ReadCollection:removeItem(
@@ -136,7 +149,7 @@ local function removeManagedCollection(name)
     ReadCollection:removeCollection(name)
 
     logger.info(
-        "Calibre Collections: Removing collection:",
+        'Calibre Collections: Removing collection:',
         name
     )
 
@@ -150,7 +163,7 @@ local function loadMetadata()
     local f = io.open(METADATA_FILE, "rb")
     if not f then
         logger.warn(
-            "Calibre Collections: metadata.calibre not found"
+            'Calibre Collections: metadata.calibre not found'
         )
         return nil
     end
@@ -164,7 +177,7 @@ local function loadMetadata()
 
     if not ok then
         logger.err(
-            "Calibre Collections: JSON parse failed"
+            'Calibre Collections: JSON parse failed'
         )
         return nil
     end
@@ -178,11 +191,11 @@ local function getBookCollections(book)
         return nil
     end
 
-    local c = md["#collections"]
+    local c = md[CUSTOM_COLUMN_USED]
     if not c then
         return nil
     end
-    return c["#value#"]
+    return c['#value#']
 end
 
 local function getBookPath(book)
@@ -287,8 +300,8 @@ local function runSync()
 
     saveState()
 
-    logger.info(
-        "Calibre Collections: sync complete"
+    logger.debug(
+        'Calibre Collections: sync complete'
     )
 end
 
@@ -305,7 +318,7 @@ local function startup()
 
     if not ok then
         logger.err(
-            "Calibre Collections failed:",
+            'Calibre Collections failed:',
             err
         )
     end
@@ -313,14 +326,14 @@ end
 
 -- hook
 userpatch.registerPatchPluginFunc(
-    "coverbrowser",
+    'coverbrowser',
     function()
         startup()
     end
 )
 
 logger.info(
-    "Calibre Collections were successfully created and/or synced."
+    'Calibre Collections were successfully created and/or synced.'
 )
 
 -- Prevent KOReader's default folder syncing for smart collections
