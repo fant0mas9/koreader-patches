@@ -9,8 +9,8 @@ This is a collection of the KOReader patches that I've written. A short descript
    This automatically creates KOReader collections using a custom collection from calibre. By default, a custom column called
    `#collections` is used. But the script can easily be edited to use any other column name.
 
-   It does not touch already existing collections. So please don't create any collections with the same name an entry in `#collections` manually.
-   Collections are created/updated at startup.
+   It does not touch already existing collections. So please don't create any collections with the same name an entry in `#collections` (or
+   the chosen column) manually. Collections are created/updated at startup.
 
    Automatically managed collections are marked with a ⚡ in the viewer. This is also customizable.
 
@@ -27,4 +27,4 @@ This is a collection of the KOReader patches that I've written. A short descript
 
 ## Installation
 
-Just copy the corresponding patch into your `<koreader>patches/` directory.
+Just copy the corresponding patch into your `<koreader>/patches/` directory.
