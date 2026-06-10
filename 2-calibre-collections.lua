@@ -25,19 +25,7 @@ local DataStorage = require('datastorage')
 local LuaSettings = require('luasettings')
 local logger = require('logger')
 local lfs = require('libs/libkoreader-lfs')
-
-local json
-do
-    local ok
-    ok, json = pcall(require, 'json')
-    if not ok then
-        ok, json = pcall(require, 'rapidjson')
-    end
-    if not ok then
-        logger.err('Calibre Collections: no JSON library found')
-        return
-    end
-end
+local json = require('rapidjson')
 
 -- internal constants
 local METADATA_FILE = '/mnt/onboard/metadata.calibre'
