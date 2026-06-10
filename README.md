@@ -6,6 +6,7 @@
 This is a collection of the KOReader patches that I've written. A short description for each patch is provided below.
 
 1. Calibre Collections
+
    This automatically creates KOReader collections using a custom collection from calibre. By default, a custom column called
    `#collections` is used. But the script can easily be edited to use any other column name.
 
@@ -17,6 +18,7 @@ This is a collection of the KOReader patches that I've written. A short descript
    [Read this to learn about custom columns.](https://wiki.mobileread.com/wiki/Kobo_Shelves_and_Collections#Driver_.2F_calibre_Configuration)
 
 1. Clean Header
+
    This adds a clean looking header on top of KOReader reader view.
 
    It shows the author name on left, book title on right, and time in the middle. The time is automatically refreshed.
@@ -24,6 +26,21 @@ This is a collection of the KOReader patches that I've written. A short descript
 
    It's heavily inspired by https://github.com/joshuacant/KOReader.patches, please use his patches instead if you want more customization.
    This is simply a highly optimized version for my specific setup, along with auto refresh for the clock.
+
+1. Kobo Style Sleep screen banner.
+
+   It's a modified version of [this patch](https://github.com/zenixlabs/koreader-frankenpatches-public/blob/main/2-kobo-style-sleepscreen-banner.lua).
+   Please take a look there for details.
+
+1. Progress Popup
+
+   It's a modified version of [this patch](https://github.com/zenixlabs/koreader-frankenpatches-public/blob/main/2-cvs-receipt-frankenpatch.lua).
+   Please take a look there for details.
+
+1. Reading Insights Popup
+
+   It's a modified version of [this patch](https://github.com/zenixlabs/koreader-frankenpatches-public/blob/main/2-reading-insights-popup.lua).
+   Please take a look there for details.
 
 ## Installation
 

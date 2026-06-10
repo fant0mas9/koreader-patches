@@ -1,7 +1,6 @@
 -- SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
 -- SPDX-License-Identifier: GPL-3.0
 
-
 --[[ Repo:https://github.com/SinTan1729/koreader-patches
    This automatically creates KOReader collections using a custom collection from calibre.
    By default, a custom column called `#collections` is used. But the script can easily be edited
@@ -148,7 +147,7 @@ end
 
 -- metadata parsing
 local function loadMetadata()
-    local f = io.open(METADATA_FILE, "rb")
+    local f = io.open(METADATA_FILE, 'rb')
     if not f then
         logger.warn(
             'Calibre Collections: metadata.calibre not found'
@@ -156,7 +155,7 @@ local function loadMetadata()
         return nil
     end
 
-    local text = f:read("*a")
+    local text = f:read('*a')
     f:close()
 
     local ok, data = pcall(function()
@@ -191,7 +190,7 @@ local function getBookPath(book)
     if not lpath then
         return nil
     end
-    return LIBRARY_ROOT .. "/" .. lpath
+    return LIBRARY_ROOT .. '/' .. lpath
 end
 
 -- sync
