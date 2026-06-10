@@ -35,7 +35,7 @@ This is a collection of the KOReader patches that I've written. A short descript
 1. Progress Popup
 
    It's a modified version of [this patch](https://github.com/zenixlabs/koreader-frankenpatches-public/blob/main/2-cvs-receipt-frankenpatch.lua).
-   Please take a look there for details.
+   Please take a look there for details. Note that it's been renamed from CVS Receipt to Progress Popup.
 
 1. Reading Insights Popup
 
