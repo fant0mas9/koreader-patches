@@ -4,6 +4,7 @@
 ## KOReader Patches
 
 This is a collection of the KOReader patches that I've written. A short description for each patch is provided below.
+This is only tested on a Kobo Clara BW, but should work on all devices supporting KOReader.
 
 1. Calibre Collections
 
@@ -45,3 +46,9 @@ This is a collection of the KOReader patches that I've written. A short descript
 ## Installation
 
 Just copy the corresponding patch into your `<koreader>/patches/` directory.
+
+## Bonus
+
+The script `kobo_backup.sh` backs up the important configs from a plugged in Kobo device, which of course includes stuff related to
+KOReader. Again, this is only tested on a Kobo Clara BW, but should work on all Kobo devices. You might need to edit the `SRC_DIR`
+and `BK_DIR` to your liking. Also, it assumes a `*nix` OS with `rsync` installed on it.
