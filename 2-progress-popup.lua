@@ -241,8 +241,8 @@ function quicklookwindow:init()
 
         local h = math.floor(secs / 3600)
         local m = math.floor((secs % 3600) / 60)
-        local h_str = T(N_('1 hr', '%1 hrs', h), h)
-        local m_str = T(N_('1 min', '%1 mins', m), m)
+        local h_str = T(N_('1 hour', '%1 hours', h), h)
+        local m_str = T(N_('1 minute', '%1 minutes', m), m)
 
         if h == 0 and m < 1 then
             return 'less than a minute'
@@ -464,7 +464,7 @@ function quicklookwindow:init()
 
             prog_bar = buttonProgressBarEnabled and buttonProgressBar(prog_pct) or normal_prog_bar(prog_pct)
 
-            local pgXofY_txt = T(_('page %1 of %2'), st_pageno, st_pagetotal)
+            local pgXofY_txt = T(_('Page %1 of %2'), st_pageno, st_pagetotal)
             local pageXofY = textt(pgXofY_txt, w_font.face.reg, w_font.size.small, w_font.color.darkGray)
 
             local percentage_display_txt = string.format('%i%%', prog_pct * 100)
@@ -490,7 +490,7 @@ function quicklookwindow:init()
         if self.ui.document and not bookCompleted then
             timeReadToday, pagesReadToday = ReaderStatistics:getTodayBookStats() -- stats for today across all books
             timeReadToday_str = string.format('%s read today', secsToTimestring(timeReadToday))
-            pagesReadToday_str = T(N_('1 pg', '%1 pgs', pagesReadToday), pagesReadToday)
+            pagesReadToday_str = T(N_('1 page', '%1 pages', pagesReadToday), pagesReadToday)
         end
 
         local time_read_today_box = function()
@@ -516,8 +516,8 @@ function quicklookwindow:init()
             return total_secs
         end
 
-        local book_timeLeft = 'calculating time'
-        local chapter_timeLeft = 'calculating time'
+        local book_timeLeft = 'Calculating time'
+        local chapter_timeLeft = 'Calculating time'
         if ReaderStatistics.avg_time and ReaderStatistics.avg_time > 0 then
             book_timeLeft = secsToTimestring(timeLeft_secs(book_pageturn_left + 1)) -- +1 to include current page when calc. time left
             chapter_timeLeft = secsToTimestring(timeLeft_secs(chapter_pgturn_left + 1))
