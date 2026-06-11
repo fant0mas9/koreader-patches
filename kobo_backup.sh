@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2026 Sayantan Santra <sayantan.santra689@gmail.com>
+# SPDX-License-Identifier: GPL-3.0
+
 # Simple script to backup KOBO related stuff
 # That includes KOReader, of course
 

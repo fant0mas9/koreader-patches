@@ -3,8 +3,8 @@
 
 ## KOReader Patches
 
-This is a collection of the KOReader patches that I've written. A short description for each patch is provided below.
-This is only tested on a Kobo Clara BW, but should work on all devices supporting KOReader.
+This is a collection of the [KOReader](https://koreader.rocks) patches that I've written. A short description for each patch
+is provided below. This is only tested on a Kobo Clara BW, but should work on all devices supporting KOReader.
 
 1. Calibre Collections
 
