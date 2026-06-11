@@ -35,6 +35,57 @@ local g_reader_settings = G_reader_settings
 local header_settings = g_reader_settings:readSetting('footer')
 local screen_width = Screen:getWidth()
 local logger = require('logger')
+local json = require('rapidjson')
+
+-- internal constants
+local METADATA_FILE = '/mnt/onboard/metadata.calibre'
+
+-- Actual code
+local function load_metadata_index()
+    local f = io.open(METADATA_FILE, 'r')
+    if not f then return nil end
+    local data = json.decode(f:read('*a'))
+    f:close()
+    if not data then return nil end
+
+    local function clean(v)
+        if v == json.null then return nil end
+        return v
+    end
+
+    local index = {}
+    for _, book in ipairs(data) do
+        local lpath = book.lpath
+        if lpath then
+            local um = book.user_metadata or {}
+
+            index[lpath] = {
+                orig_title = um['#orig_title']
+                    and clean(um['#orig_title']['#value#'])
+                    or nil,
+                orig_author = um['#orig_author']
+                    and clean(um['#orig_author']['#value#'])
+                    or nil,
+            }
+        end
+    end
+
+    return index
+end
+
+local index = nil
+local function getBookOriginalMetadata(file)
+    if not file then return nil end
+    local rel_path = file:gsub('^/mnt/onboard/', '')
+    if not index then
+        index = load_metadata_index()
+        if not index then return nil end
+    end
+
+    local entry = index[rel_path]
+    if not entry then return nil end
+    return entry.orig_title, entry.orig_author
+end
 
 local header_region = nil
 local refresh_scheduled = false
@@ -144,6 +195,9 @@ ReaderView.paintTo = function(self, bb, x, y)
             book_author = T(_('%1 et al.'), util.splitToArray(book_author, '\n')[1] .. ',')
         end
     end
+    local orig_title, orig_author = getBookOriginalMetadata(self.ui.document.file or nil)
+    if orig_title then book_title = orig_title end
+    if orig_author then book_author = orig_author end
 
     -- ===========================!!!!!!!!!!!!!!!=========================== -
     -- What you put here will show in the header:

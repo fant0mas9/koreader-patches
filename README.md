@@ -28,6 +28,11 @@ This is only tested on a Kobo Clara BW, but should work on all devices supportin
    It's heavily inspired by https://github.com/joshuacant/KOReader.patches, please use his patches instead if you want more customization.
    This is simply a highly optimized version for my specific setup, along with auto refresh for the clock.
 
+   Note: I use custom metadata columns in calibre called `#orig_title` and `#orig_author` to store the original title and author names, in
+   the original script, for non-English languages that I can read. I prefer to use the English names for search etc. but original script in
+   the header looks better to my eyes. Anyway, you can also use this if you want,otherwise it just falls back to the title and author
+   metadata provided by KOReader.
+
 1. Kobo Style Sleep screen banner.
 
    It's a modified version of [this patch](https://github.com/zenixlabs/koreader-frankenpatches-public/blob/main/2-kobo-style-sleepscreen-banner.lua).
