@@ -40,6 +40,12 @@ local json = require('rapidjson')
 -- internal constants
 local METADATA_FILE = '/mnt/onboard/metadata.calibre'
 
+-- session data
+local index = nil
+local info_header = nil
+local refresh_scheduled = false
+local scheduled_view = nil
+
 -- Actual code
 local function load_metadata_index()
     local f = io.open(METADATA_FILE, 'r')
@@ -53,13 +59,13 @@ local function load_metadata_index()
         return v
     end
 
-    local index = {}
+    local temp_index = {}
     for _, book in ipairs(data) do
         local lpath = book.lpath
         if lpath then
             local um = book.user_metadata or {}
 
-            index[lpath] = {
+            temp_index[lpath] = {
                 orig_title = um['#orig_title']
                     and clean(um['#orig_title']['#value#'])
                     or nil,
@@ -70,10 +76,9 @@ local function load_metadata_index()
         end
     end
 
-    return index
+    return temp_index
 end
 
-local index = nil
 local function getBookOriginalMetadata(file)
     if not file then return nil end
     local rel_path = file:gsub('^/mnt/onboard/', '')
@@ -87,9 +92,6 @@ local function getBookOriginalMetadata(file)
     return entry.orig_title, entry.orig_author
 end
 
-local header_region = nil
-local refresh_scheduled = false
-local scheduled_view = nil
 local function scheduleHeaderRefresh(view)
     if refresh_scheduled then
         return
@@ -103,9 +105,9 @@ local function scheduleHeaderRefresh(view)
         logger.dbg('Clean Header: Firing header refresh.')
         if view
             and view.dialog
-            and header_region then
+            and info_header then
             UIManager:setDirty(view.dialog, function()
-                return 'ui', header_region
+                return 'ui', info_header.dimen
             end)
         end
         refresh_scheduled = false
@@ -127,14 +129,6 @@ local function makeClockWidget(font_face, font_size, bold, color)
     }
 end
 
-local function paintCenteredClock(bb, x, y, clock_widget, top_padding)
-    clock_widget:paintTo(
-        bb,
-        x + screen_width / 2 - clock_widget:getSize().w / 2,
-        y + top_padding
-    )
-end
-
 local function getMaxClockWidth()
     local header_font_face = 'ffont'                                 -- this is the same font the footer uses
     local header_font_size = header_settings.text_font_size or 14    -- Will use your footer setting if available
@@ -152,57 +146,29 @@ local function getMaxClockWidth()
     return width
 end
 
-ReaderView.paintTo = function(self, bb, x, y)
-    _ReaderView_paintTo_orig(self, bb, x, y)
-    if self.render_mode ~= nil then return end                       -- Show only for epub-likes and never on pdf-likes
+-- Create the info header
+local function makeInfoHeader(view, header_config, clock_widget_h)
+    local header_use_book_margins = true -- Use same margins as book for header
+    local header_margin = Size.padding.large
+    local left_max_width_pct = 42        -- this % is how much space the left corner can use before "truncating..."
+    local right_max_width_pct = 42       -- this % is how much space the right corner can use before "truncating..."
 
-    local header_font_face = 'ffont'                                 -- this is the same font the footer uses
-    -- header_font_face = "source/SourceSerif4-Regular.ttf" -- this is the serif font from Project: Title
-    local header_font_size = header_settings.text_font_size or 14    -- Will use your footer setting if available
-    local header_font_bold = header_settings.text_font_bold or false -- Will use your footer setting if available
-    local header_font_color = Blitbuffer
-        .COLOR_BLACK                                                 -- black is the default, but there's 15 other shades to try
-    local header_top_padding = Size.padding
-        .small                                                       -- replace small with default or large for more space at the top
-    local header_use_book_margins = true                             -- Use same margins as book for header
-    local header_margin = Size.padding
-        .large                                                       -- Use this instead, if book margins is set to false
-    local left_max_width_pct = 42                                    -- this % is how much space the left corner can use before "truncating..."
-    local right_max_width_pct = 42                                   -- this % is how much space the right corner can use before "truncating..."
-
-    -- Title and Author(s):
-    local center_header_widget = makeClockWidget(
-        header_font_face,
-        header_font_size,
-        header_font_bold,
-        header_font_color
-    )
-    self._clock_width = self._clock_width or getMaxClockWidth()
-    paintCenteredClock(
-        bb,
-        x,
-        y,
-        center_header_widget,
-        header_top_padding
-    )
-
-    local book_title = ''
-    local book_author = ''
-    if self.ui.doc_props then
-        book_title = self.ui.doc_props.display_title or ''
-        book_author = self.ui.doc_props.authors or ''
-        if book_author:find('\n') then -- Show first author if multiple authors
-            book_author = T(_('%1 et al.'), util.splitToArray(book_author, '\n')[1] .. ',')
+    local book = { title = 'N/A', author = 'N/A' }
+    if view.ui.doc_props then
+        book.title = view.ui.doc_props.display_title or ''
+        book.author = view.ui.doc_props.authors or ''
+        if book.author:find('\n') then -- Show first author if multiple authors
+            book.author = T(_('%1 et al.'), util.splitToArray(book.author, '\n')[1] .. ',')
         end
     end
-    local orig_title, orig_author = getBookOriginalMetadata(self.ui.document.file or nil)
-    if orig_title then book_title = orig_title end
-    if orig_author then book_author = orig_author end
+    local orig_title, orig_author = getBookOriginalMetadata(view.ui.document.file or nil)
+    if orig_title then book.title = orig_title end
+    if orig_author then book.author = orig_author end
 
     -- ===========================!!!!!!!!!!!!!!!=========================== -
     -- What you put here will show in the header:
-    local left_corner_header = string.format('%s', book_author)
-    local right_corner_header = string.format('%s', book_title)
+    local left_corner_header = string.format('%s', book.author)
+    local right_corner_header = string.format('%s', book.title)
     -- Look up "string.format" in Lua if you need help.
     -- ===========================!!!!!!!!!!!!!!!=========================== -
 
@@ -211,8 +177,8 @@ ReaderView.paintTo = function(self, bb, x, y)
     local left_margin = header_margin
     local right_margin = header_margin
     if header_use_book_margins then -- Set width % based on R + L margins
-        left_margin = self.document:getPageMargins().left or header_margin
-        right_margin = self.document:getPageMargins().right or header_margin
+        left_margin = view.document:getPageMargins().left or header_margin
+        right_margin = view.document:getPageMargins().right or header_margin
     end
     margins = left_margin + right_margin
     local avail_width = screen_width - margins -- deduct margins from width
@@ -223,8 +189,8 @@ ReaderView.paintTo = function(self, bb, x, y)
         local text_widget = TextWidget:new {
             text = text:gsub(' ', '\u{00A0}'), -- no-break-space
             max_width = avail_width * max_width_pct * (1 / 100),
-            face = Font:getFace(header_font_face, header_font_size),
-            bold = header_font_bold,
+            face = Font:getFace(header_config.font_face, header_config.font_size),
+            bold = header_config.font_bold,
             padding = 0,
         }
         local fitted_text, add_ellipsis = text_widget:getFittedText()
@@ -238,23 +204,23 @@ ReaderView.paintTo = function(self, bb, x, y)
     right_corner_header = getFittedText(right_corner_header, right_max_width_pct)
     local left_header_text = TextWidget:new {
         text = left_corner_header,
-        face = Font:getFace(header_font_face, header_font_size),
-        bold = header_font_bold,
-        fgcolor = header_font_color,
+        face = Font:getFace(header_config.font_face, header_config.font_size),
+        bold = header_config.font_bold,
+        fgcolor = header_config.font_color,
         padding = 0,
     }
     local right_header_text = TextWidget:new {
         text = right_corner_header,
-        face = Font:getFace(header_font_face, header_font_size),
-        bold = header_font_bold,
-        fgcolor = header_font_color,
+        face = Font:getFace(header_config.font_face, header_config.font_size),
+        bold = header_config.font_bold,
+        fgcolor = header_config.font_color,
         padding = 0,
     }
     local dynamic_space = (avail_width - left_header_text:getSize().w - right_header_text:getSize().w)
     local header = CenterContainer:new {
-        dimen = Geom:new { w = screen_width, h = math.max(left_header_text:getSize().h, right_header_text:getSize().h, center_header_widget:getSize().h) + header_top_padding },
+        dimen = Geom:new { w = screen_width, h = math.max(left_header_text:getSize().h, right_header_text:getSize().h, clock_widget_h) + header_config.top_padding },
         VerticalGroup:new {
-            VerticalSpan:new { width = header_top_padding },
+            VerticalSpan:new { width = header_config.top_padding },
             HorizontalGroup:new {
                 left_header_text,
                 HorizontalSpan:new { width = dynamic_space },
@@ -262,12 +228,48 @@ ReaderView.paintTo = function(self, bb, x, y)
             }
         },
     }
-    header:paintTo(bb, x, y)
-    header_region = header.dimen
 
-    if self ~= scheduled_view then
+    return header
+end
+
+ReaderView.paintTo = function(self, bb, x, y)
+    _ReaderView_paintTo_orig(self, bb, x, y)
+    if self.render_mode ~= nil then return end -- Show only for epub-likes and never on pdf-likes
+
+    self._header_config = self._header_config or {
+        font_face = 'ffont',                                 -- this is the same font the footer uses
+        font_size = header_settings.text_font_size or 14,    -- Will use your footer setting if available
+        font_bold = header_settings.text_font_bold or false, -- Will use your footer setting if available
+        font_color = Blitbuffer.COLOR_BLACK,
+        top_padding = Size.padding.small
+    }
+
+    -- Create clock widget
+    local clock_widget = makeClockWidget(
+        self._header_config.font_face,
+        self._header_config.font_size,
+        self._header_config.font_bold,
+        self._header_config.font_color
+    )
+    self._clock_width = self._clock_width or getMaxClockWidth()
+
+    if info_header == nil or self ~= scheduled_view then
+        if info_header then
+            info_header:free()
+        end
         logger.dbg('Clean Header: View has changed.')
         refresh_scheduled = false
+        info_header = makeInfoHeader(self, self._header_config, clock_widget:getSize().h)
     end
+
+    -- Draw the widgets
+    info_header:paintTo(bb, x, y)
+    clock_widget:paintTo(
+        bb,
+        x + screen_width / 2 - clock_widget:getSize().w / 2,
+        y + self._header_config.top_padding
+    )
+    clock_widget:free()
+
     scheduleHeaderRefresh(self)
 end
