@@ -21,24 +21,28 @@ local userpatch = require('userpatch')
 local ReadCollection = require('readcollection')
 local FileManagerCollection = require('apps/filemanager/filemanagercollection')
 local DataStorage = require('datastorage')
+---@diagnostic disable-next-line: undefined-global
+local g_reader_settings = G_reader_settings
+local Device = require('device')
 local LuaSettings = require('luasettings')
 local logger = require('logger')
 local lfs = require('libs/libkoreader-lfs')
 local json = require('rapidjson')
 
--- internal constants
-local METADATA_FILE = '/mnt/onboard/metadata.calibre'
-local LIBRARY_ROOT = '/mnt/onboard'
+-- Internal constants
+-- Don't touch these unless you know what you're doing
+local METADATA_ROOT = nil
+local LIBRARY_ROOT = nil
 local SETTINGS_FILE =
     DataStorage:getSettingsDir() .. '/calibre_collections.lua'
 
--- state
+-- State
 local settings = LuaSettings:open(SETTINGS_FILE)
 local managed =
     settings:readSetting('managed_collections', {})
 local startup_done = false
 
--- persistence
+-- Persistence
 local function saveState()
     settings:saveSetting(
         'managed_collections',
@@ -47,7 +51,7 @@ local function saveState()
     settings:flush()
 end
 
--- marker support
+-- Marker support
 local function isManaged(name)
     return managed[name] == true
 end
@@ -63,7 +67,7 @@ function FileManagerCollection.getCollMarker(name)
     return marker
 end
 
--- collection helpers
+-- Collection helpers
 local function collectionExists(name)
     return ReadCollection.coll[name]
 end
@@ -145,9 +149,39 @@ local function removeManagedCollection(name)
 end
 
 
--- metadata parsing
+-- Metadata parsing
+local function initConstants()
+    if LIBRARY_ROOT == nil then
+        LIBRARY_ROOT = g_reader_settings:readSetting('home_dir')
+            or Device.home_dir
+        LIBRARY_ROOT = LIBRARY_ROOT:gsub('/+$', '')
+        logger.info('Using library root:', LIBRARY_ROOT)
+    end
+    if LIBRARY_ROOT ~= nil and METADATA_ROOT == nil then
+        local dir = LIBRARY_ROOT
+        while dir do
+            local candidate = dir .. '/metadata.calibre'
+            if lfs.attributes(candidate, 'mode') == 'file' then
+                METADATA_ROOT = dir
+                break
+            end
+
+            local parent = dir:match('(.+)/[^/]+$')
+            if not parent or parent == dir then
+                break
+            end
+            dir = parent
+        end
+    end
+    logger.info('Using metadata file:', METADATA_ROOT .. '/metadata.calibre')
+end
+
 local function loadMetadata()
-    local f = io.open(METADATA_FILE, 'rb')
+    initConstants()
+    local f
+    if METADATA_ROOT ~= nil then
+        f = io.open(METADATA_ROOT .. '/metadata.calibre', 'rb')
+    end
     if not f then
         logger.warn(
             'Calibre Collections: metadata.calibre not found'
@@ -190,10 +224,14 @@ local function getBookPath(book)
     if not lpath then
         return nil
     end
-    return LIBRARY_ROOT .. '/' .. lpath
+    local path = METADATA_ROOT .. '/' .. lpath
+    if path:sub(1, #LIBRARY_ROOT + 1) ~= LIBRARY_ROOT .. '/' then
+        return nil
+    end
+    return path
 end
 
--- sync
+-- Sync
 local function buildDesiredMembership(metadata)
     local desired = {}
     for _, book in ipairs(metadata) do
@@ -292,7 +330,7 @@ local function runSync()
     )
 end
 
--- startup
+-- Startup
 local function startup()
     if startup_done then
         return
@@ -311,7 +349,7 @@ local function startup()
     end
 end
 
--- hook
+-- Hook
 userpatch.registerPatchPluginFunc(
     'coverbrowser',
     function()
