@@ -160,7 +160,7 @@ local function initConstants()
     if LIBRARY_ROOT ~= nil and METADATA_ROOT == nil then
         local dir = LIBRARY_ROOT
         while dir do
-            local candidate = dir .. '/metadata.calibre'
+            local candidate = dir .. '/.metadata.calibre'
             if lfs.attributes(candidate, 'mode') == 'file' then
                 METADATA_ROOT = dir
                 break
