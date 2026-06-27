@@ -13,7 +13,7 @@
 
 -- !!! Change this variable if you want to use a different custom column name
 -- Note that you need to add a # to the front.
-local CUSTOM_COLUMN_USED = '#collections'
+local CUSTOM_COLUMN_USED = '#myselves'
 local MARKER = '⚡'
 
 -- You shouldn't need to touch anything after this line
