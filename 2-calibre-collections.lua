@@ -173,18 +173,18 @@ local function initConstants()
             dir = parent
         end
     end
-    logger.info('Using metadata file:', METADATA_ROOT .. '/metadata.calibre')
+    logger.info('Using metadata file:', METADATA_ROOT .. '/.metadata.calibre')
 end
 
 local function loadMetadata()
     initConstants()
     local f
     if METADATA_ROOT ~= nil then
-        f = io.open(METADATA_ROOT .. '/metadata.calibre', 'rb')
+        f = io.open(METADATA_ROOT .. '/.metadata.calibre', 'rb')
     end
     if not f then
         logger.warn(
-            'Calibre Collections: metadata.calibre not found'
+            'Calibre Collections: .metadata.calibre not found'
         )
         return nil
     end
